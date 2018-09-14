@@ -22,6 +22,7 @@ Updated 13th April 2018
 from flask_socketio import SocketIO, emit
 from flask import Flask, render_template, url_for, copy_current_request_context
 from random import random
+import serial
 from time import sleep
 from threading import Thread, Event
 
@@ -34,6 +35,8 @@ app.config['DEBUG'] = True
 
 #turn the flask app into a socketio app
 socketio = SocketIO(app)
+
+ser = serial.Serial('/dev/cu.usbmodem1411', 9600)
 
 #random number Generator Thread
 thread = Thread()
@@ -52,9 +55,8 @@ class RandomThread(Thread):
         #infinite loop of magical random numbers
         print("Making random numbers")
         while not thread_stop_event.isSet():
-            number = round(random()*10, 3)
-            print(number)
-            socketio.emit('newnumber', {'number': number}, namespace='/test')
+            print(ser.readline())
+            socketio.emit('newnumber', {'number': ser.readline()}, namespace='/test')
             sleep(self.delay)
 
     def run(self):
