@@ -22,7 +22,11 @@ Updated 13th April 2018
 from flask_socketio import SocketIO, emit
 from flask import Flask, render_template, url_for, copy_current_request_context
 from random import random
-import serial
+import warnings
+import time
+#import serial
+#import serial.tools.list_ports
+from lib import arduino
 from time import sleep
 from threading import Thread, Event
 
@@ -36,7 +40,10 @@ app.config['DEBUG'] = True
 #turn the flask app into a socketio app
 socketio = SocketIO(app)
 
-ser = serial.Serial('/dev/cu.usbmodem1411', 9600)
+#Arduino baud and serial
+baud = 9600
+ardu_serial = arduino.arduinoPort(baud)
+ardu_line = None
 
 #random number Generator Thread
 thread = Thread()
@@ -44,10 +51,20 @@ thread_stop_event = Event()
 
 class RandomThread(Thread):
     def __init__(self):
-        self.delay = 1
+        self.delay = 0.1
         super(RandomThread, self).__init__()
 
-    def randomNumberGenerator(self):
+    def serial(self):
+        print("Getting Line from Arduino")
+        while not thread_stop_event.isSet():
+            ardu_line = ardu_serial.readline()
+            ardu_line = arduino.csv_read(ardu_line)
+            print ardu_line
+            update(ardu_line)
+            sleep(self.delay)
+
+
+    def newNumber(self):
         """
         Generate a random number every 1 second and emit to a socketio instance (broadcast)
         Ideally to be run in a separate thread?
@@ -59,8 +76,19 @@ class RandomThread(Thread):
             socketio.emit('newnumber', {'number': ser.readline()}, namespace='/test')
             sleep(self.delay)
 
+    def update(self,input):
+        """
+        Generate a random number every 1 second and emit to a socketio instance (broadcast)
+        Ideally to be run in a separate thread?
+        """
+        #infinite loop of magical random numbers
+        print("Making random numbers")
+        while not thread_stop_event.isSet():
+            print(input)
+            socketio.emit('line', input, namespace='/test')
+
     def run(self):
-        self.randomNumberGenerator()
+        self.serial()
 
 
 @app.route('/')
