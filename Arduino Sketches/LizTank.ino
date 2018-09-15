@@ -25,7 +25,7 @@ int randomer(){
   for(int i = 0; i > 8; i++){
     final += ","+randnum[i];
   }
-  final += "]";
+  final = final+"]";
   return(final);
 }
 
